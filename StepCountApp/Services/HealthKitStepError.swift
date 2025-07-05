@@ -58,10 +58,6 @@ class HealthKitStepProvider {
             throw HealthKitStepError.notAvailable
         }
         
-        guard isAuthorized else {
-            throw HealthKitStepError.unauthorized
-        }
-        
         let calendar = Calendar.current
         let startDate = calendar.startOfDay(for: Date())
         let endDate = Date()
@@ -104,10 +100,6 @@ class HealthKitStepProvider {
             throw HealthKitStepError.notAvailable
         }
         
-        guard isAuthorized else {
-            throw HealthKitStepError.unauthorized
-        }
-        
         let calendar = Calendar.current
         let endDate = Date()
         
@@ -147,10 +139,6 @@ class HealthKitStepProvider {
             throw HealthKitStepError.notAvailable
         }
         
-        guard isAuthorized else {
-            throw HealthKitStepError.unauthorized
-        }
-        
         let calendar = Calendar.current
         let startOfStartDate = calendar.startOfDay(for: startDate)
         let startOfEndDate = calendar.startOfDay(for: endDate)
@@ -181,10 +169,6 @@ class HealthKitStepProvider {
             throw HealthKitStepError.notAvailable
         }
         
-        guard isAuthorized else {
-            throw HealthKitStepError.unauthorized
-        }
-        
         let calendar = Calendar.current
         guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date)),
               let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) else {
@@ -199,10 +183,6 @@ class HealthKitStepProvider {
             throw HealthKitStepError.notAvailable
         }
         
-        guard isAuthorized else {
-            throw HealthKitStepError.unauthorized
-        }
-        
         let calendar = Calendar.current
         guard let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: date)?.start,
               let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek) else {
@@ -215,10 +195,6 @@ class HealthKitStepProvider {
     func fetchYearlySteps(for year: Int) async throws -> [Date: Int] {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
-        }
-        
-        guard isAuthorized else {
-            throw HealthKitStepError.unauthorized
         }
         
         let calendar = Calendar.current

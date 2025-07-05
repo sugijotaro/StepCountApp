@@ -191,7 +191,7 @@ class StepService: StepServiceProtocol {
     }
     
     func fetchStepsForDateRange(from startDate: Date, to endDate: Date) async throws -> [Date: StepData] {
-        guard healthKitProvider.isAvailable && healthKitProvider.isAuthorized else {
+        guard healthKitProvider.isAvailable else {
             throw StepServiceError.noProviderAvailable
         }
         
@@ -206,7 +206,7 @@ class StepService: StepServiceProtocol {
     }
     
     func fetchMonthlySteps(for date: Date) async throws -> [Date: StepData] {
-        guard healthKitProvider.isAvailable && healthKitProvider.isAuthorized else {
+        guard healthKitProvider.isAvailable else {
             throw StepServiceError.noProviderAvailable
         }
         
@@ -221,7 +221,7 @@ class StepService: StepServiceProtocol {
     }
     
     func fetchWeeklySteps(for date: Date) async throws -> [Date: StepData] {
-        guard healthKitProvider.isAvailable && healthKitProvider.isAuthorized else {
+        guard healthKitProvider.isAvailable else {
             throw StepServiceError.noProviderAvailable
         }
         
@@ -236,7 +236,7 @@ class StepService: StepServiceProtocol {
     }
     
     func fetchYearlySteps(for year: Int) async throws -> [Date: StepData] {
-        guard healthKitProvider.isAvailable && healthKitProvider.isAuthorized else {
+        guard healthKitProvider.isAvailable else {
             throw StepServiceError.noProviderAvailable
         }
         
