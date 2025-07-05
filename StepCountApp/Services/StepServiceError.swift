@@ -163,28 +163,25 @@ class StepService: StepServiceProtocol {
     func fetchStepsForSpecificDate(_ date: Date) async throws -> StepData {
         let daysFromToday = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
         
-        // Check if HealthKit is available and authorized first
+        // Check if HealthKit is available first
         guard healthKitProvider.isAvailable else {
             throw StepServiceError.noProviderAvailable
-        }
-        
-        guard healthKitProvider.isAuthorized else {
-            throw StepServiceError.permissionDenied
         }
         
         // For dates within 7 days, try hybrid approach
         if daysFromToday <= 7 && coreMotionProvider.isAvailable {
             do {
-                async let healthKitSteps = healthKitProvider.fetchStepsForSpecificDate(date)
-                async let coreMotionSteps = coreMotionProvider.fetchStepsForSpecificDate(date)
-                
-                let (hkSteps, cmSteps) = try await (healthKitSteps, coreMotionSteps)
-                let selectedSteps = max(hkSteps, cmSteps)
-                return StepData(steps: selectedSteps, source: .hybrid, date: date)
-            } catch {
-                // Fallback to HealthKit only
+                // Try HealthKit first, then CoreMotion as fallback
                 let steps = try await healthKitProvider.fetchStepsForSpecificDate(date)
                 return StepData(steps: steps, source: .healthKit, date: date)
+            } catch {
+                // If HealthKit fails, try CoreMotion
+                do {
+                    let steps = try await coreMotionProvider.fetchStepsForSpecificDate(date)
+                    return StepData(steps: steps, source: .coreMotion, date: date)
+                } catch {
+                    throw StepServiceError.dataNotAvailable
+                }
             }
         } else {
             // For dates older than 7 days, use HealthKit only

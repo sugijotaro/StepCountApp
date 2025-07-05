@@ -80,6 +80,8 @@ struct ContentView: View {
                         .font(.caption2)
                     Text("CoreMotion Available: \(CMPedometer.isStepCountingAvailable() ? "Yes" : "No")")
                         .font(.caption2)
+                    Text("HealthKit Auth Status: \(healthKitAuthStatusText)")
+                        .font(.caption2)
                 }
                 .foregroundColor(.secondary)
             }
@@ -247,6 +249,25 @@ struct ContentView: View {
             return "Granted"
         case .denied:
             return "Denied"
+        }
+    }
+    
+    private var healthKitAuthStatusText: String {
+        guard let stepCountType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
+            return "Type Error"
+        }
+        let healthStore = HKHealthStore()
+        let status = healthStore.authorizationStatus(for: stepCountType)
+        
+        switch status {
+        case .notDetermined:
+            return "Not Determined"
+        case .sharingDenied:
+            return "Denied"
+        case .sharingAuthorized:
+            return "Authorized"
+        @unknown default:
+            return "Unknown"
         }
     }
     

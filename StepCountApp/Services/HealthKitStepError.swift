@@ -23,7 +23,10 @@ class HealthKitStepProvider {
     
     var isAuthorized: Bool {
         guard let stepCountType = HKObjectType.quantityType(forIdentifier: .stepCount) else { return false }
-        return healthStore.authorizationStatus(for: stepCountType) == .sharingAuthorized
+        let status = healthStore.authorizationStatus(for: stepCountType)
+        // HealthKitでは、プライバシー保護のため.notDeterminedでも実際には許可されている場合がある
+        // .sharingDeniedの場合のみ明確に拒否されている
+        return status != .sharingDenied
     }
     
     func requestPermission() async throws {
@@ -69,10 +72,6 @@ class HealthKitStepProvider {
     func fetchSteps(from startDate: Date, to endDate: Date) async throws -> Int {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
-        }
-        
-        guard isAuthorized else {
-            throw HealthKitStepError.unauthorized
         }
         
         guard let quantityType = HKSampleType.quantityType(forIdentifier: .stepCount) else {
@@ -132,16 +131,14 @@ class HealthKitStepProvider {
             throw HealthKitStepError.notAvailable
         }
         
-        guard isAuthorized else {
-            throw HealthKitStepError.unauthorized
-        }
-        
         let calendar = Calendar.current
         let startDate = calendar.startOfDay(for: date)
         guard let endDate = calendar.date(byAdding: .day, value: 1, to: startDate) else {
             throw HealthKitStepError.dataNotAvailable
         }
         
+        // Try to fetch data directly without checking authorization status first
+        // HealthKit will handle authorization internally
         return try await fetchSteps(from: startDate, to: endDate)
     }
     
