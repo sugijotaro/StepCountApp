@@ -80,4 +80,24 @@ class CoreMotionStepProvider {
     func stopRealtimeStepUpdates() {
         pedometer.stopUpdates()
     }
+    
+    func fetchStepsForSpecificDate(_ date: Date) async throws -> Int {
+        guard isAvailable else {
+            throw CoreMotionStepError.notAvailable
+        }
+        
+        let calendar = Calendar.current
+        let startDate = calendar.startOfDay(for: date)
+        guard let endDate = calendar.date(byAdding: .day, value: 1, to: startDate) else {
+            throw CoreMotionStepError.dataNotAvailable
+        }
+        
+        let daysFromToday = calendar.dateComponents([.day], from: date, to: Date()).day ?? 0
+        
+        if daysFromToday > 7 {
+            throw CoreMotionStepError.dataNotAvailable
+        }
+        
+        return try await fetchSteps(from: startDate, to: endDate)
+    }
 }

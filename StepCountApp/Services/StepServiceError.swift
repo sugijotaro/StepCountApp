@@ -31,6 +31,11 @@ protocol StepServiceProtocol {
     func fetchTodaySteps() async throws -> StepData
     func fetchSteps(from startDate: Date, to endDate: Date) async throws -> StepData
     func fetchLastNDaysSteps(_ days: Int) async throws -> [Date: StepData]
+    func fetchStepsForSpecificDate(_ date: Date) async throws -> StepData
+    func fetchStepsForDateRange(from startDate: Date, to endDate: Date) async throws -> [Date: StepData]
+    func fetchMonthlySteps(for date: Date) async throws -> [Date: StepData]
+    func fetchWeeklySteps(for date: Date) async throws -> [Date: StepData]
+    func fetchYearlySteps(for year: Int) async throws -> [Date: StepData]
     func startRealtimeStepUpdates(handler: @escaping (StepData) -> Void)
     func stopRealtimeStepUpdates()
 }
@@ -153,6 +158,94 @@ class StepService: StepServiceProtocol {
                 return StepData(steps: cmSteps, source: .coreMotion, date: endDate)
             }
         }
+    }
+    
+    func fetchStepsForSpecificDate(_ date: Date) async throws -> StepData {
+        let daysFromToday = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
+        
+        if daysFromToday <= 7 && coreMotionProvider.isAvailable {
+            if healthKitProvider.isAvailable && healthKitProvider.isAuthorized {
+                async let healthKitSteps = healthKitProvider.fetchStepsForSpecificDate(date)
+                async let coreMotionSteps = coreMotionProvider.fetchStepsForSpecificDate(date)
+                
+                do {
+                    let (hkSteps, cmSteps) = try await (healthKitSteps, coreMotionSteps)
+                    let selectedSteps = max(hkSteps, cmSteps)
+                    return StepData(steps: selectedSteps, source: .hybrid, date: date)
+                } catch {
+                    let hkSteps = try await healthKitProvider.fetchStepsForSpecificDate(date)
+                    return StepData(steps: hkSteps, source: .healthKit, date: date)
+                }
+            } else {
+                let steps = try await coreMotionProvider.fetchStepsForSpecificDate(date)
+                return StepData(steps: steps, source: .coreMotion, date: date)
+            }
+        } else if healthKitProvider.isAvailable && healthKitProvider.isAuthorized {
+            let steps = try await healthKitProvider.fetchStepsForSpecificDate(date)
+            return StepData(steps: steps, source: .healthKit, date: date)
+        } else {
+            throw StepServiceError.noProviderAvailable
+        }
+    }
+    
+    func fetchStepsForDateRange(from startDate: Date, to endDate: Date) async throws -> [Date: StepData] {
+        guard healthKitProvider.isAvailable && healthKitProvider.isAuthorized else {
+            throw StepServiceError.noProviderAvailable
+        }
+        
+        let healthKitSteps = try await healthKitProvider.fetchStepsForDateRange(from: startDate, to: endDate)
+        
+        var result: [Date: StepData] = [:]
+        for (date, steps) in healthKitSteps {
+            result[date] = StepData(steps: steps, source: .healthKit, date: date)
+        }
+        
+        return result
+    }
+    
+    func fetchMonthlySteps(for date: Date) async throws -> [Date: StepData] {
+        guard healthKitProvider.isAvailable && healthKitProvider.isAuthorized else {
+            throw StepServiceError.noProviderAvailable
+        }
+        
+        let healthKitSteps = try await healthKitProvider.fetchMonthlySteps(for: date)
+        
+        var result: [Date: StepData] = [:]
+        for (stepDate, steps) in healthKitSteps {
+            result[stepDate] = StepData(steps: steps, source: .healthKit, date: stepDate)
+        }
+        
+        return result
+    }
+    
+    func fetchWeeklySteps(for date: Date) async throws -> [Date: StepData] {
+        guard healthKitProvider.isAvailable && healthKitProvider.isAuthorized else {
+            throw StepServiceError.noProviderAvailable
+        }
+        
+        let healthKitSteps = try await healthKitProvider.fetchWeeklySteps(for: date)
+        
+        var result: [Date: StepData] = [:]
+        for (stepDate, steps) in healthKitSteps {
+            result[stepDate] = StepData(steps: steps, source: .healthKit, date: stepDate)
+        }
+        
+        return result
+    }
+    
+    func fetchYearlySteps(for year: Int) async throws -> [Date: StepData] {
+        guard healthKitProvider.isAvailable && healthKitProvider.isAuthorized else {
+            throw StepServiceError.noProviderAvailable
+        }
+        
+        let healthKitSteps = try await healthKitProvider.fetchYearlySteps(for: year)
+        
+        var result: [Date: StepData] = [:]
+        for (stepDate, steps) in healthKitSteps {
+            result[stepDate] = StepData(steps: steps, source: .healthKit, date: stepDate)
+        }
+        
+        return result
     }
     
     private func hasAnyProviderAvailable() -> Bool {

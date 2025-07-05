@@ -22,6 +22,12 @@ struct ContentView: View {
                     
                     weeklyStepsSection
                     
+                    specificDateSection
+                    
+                    monthlyStepsSection
+                    
+                    dateRangeSection
+                    
                     actionsSection
                 }
                 .padding()
@@ -225,6 +231,137 @@ struct ContentView: View {
             return "Granted"
         case .denied:
             return "Denied"
+        }
+    }
+    
+    private var specificDateSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Specific Date Steps")
+                .font(.headline)
+            
+            VStack(spacing: 8) {
+                DatePicker("Select Date", selection: $viewModel.selectedDate, displayedComponents: .date)
+                    .datePickerStyle(CompactDatePickerStyle())
+                
+                Button("Fetch Steps") {
+                    Task {
+                        await viewModel.fetchStepsForSelectedDate()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isLoading)
+                
+                if let selectedDateSteps = viewModel.selectedDateSteps {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("\(viewModel.getStepCountDisplayString(for: selectedDateSteps))")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        Text("Data Source: \(viewModel.getDataSourceDisplayString(for: selectedDateSteps))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.purple.opacity(0.1))
+            .cornerRadius(10)
+        }
+    }
+    
+    private var monthlyStepsSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Monthly Steps")
+                .font(.headline)
+            
+            VStack(spacing: 8) {
+                DatePicker("Select Month", selection: $viewModel.selectedMonth, displayedComponents: .date)
+                    .datePickerStyle(CompactDatePickerStyle())
+                
+                Button("Fetch Monthly Steps") {
+                    Task {
+                        await viewModel.fetchMonthlySteps()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isLoading)
+                
+                if !viewModel.monthlySteps.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(viewModel.getMonthlyStepsArray().prefix(10), id: \.date) { item in
+                                VStack {
+                                    Text("\(Calendar.current.component(.day, from: item.date))")
+                                        .font(.caption)
+                                        .fontWeight(.medium)
+                                    Text("\(item.stepData.steps)")
+                                        .font(.caption2)
+                                }
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 6)
+                                .background(Color.cyan.opacity(0.2))
+                                .cornerRadius(6)
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.cyan.opacity(0.1))
+            .cornerRadius(10)
+        }
+    }
+    
+    private var dateRangeSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Date Range Steps")
+                .font(.headline)
+            
+            VStack(spacing: 8) {
+                HStack {
+                    VStack(alignment: .leading) {
+                        Text("Start Date")
+                            .font(.caption)
+                        DatePicker("", selection: $viewModel.startDate, displayedComponents: .date)
+                            .datePickerStyle(CompactDatePickerStyle())
+                    }
+                    VStack(alignment: .leading) {
+                        Text("End Date")
+                            .font(.caption)
+                        DatePicker("", selection: $viewModel.endDate, displayedComponents: .date)
+                            .datePickerStyle(CompactDatePickerStyle())
+                    }
+                }
+                
+                Button("Fetch Range Steps") {
+                    Task {
+                        await viewModel.fetchDateRangeSteps()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isLoading)
+                
+                if !viewModel.dateRangeSteps.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text("Total: \(viewModel.getTotalStepsInRange()) steps")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                            Spacer()
+                            Text("Avg: \(viewModel.getAverageStepsInRange()) steps/day")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                        
+                        Text("Days: \(viewModel.dateRangeSteps.count)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .padding()
+            .background(Color.pink.opacity(0.1))
+            .cornerRadius(10)
         }
     }
 }

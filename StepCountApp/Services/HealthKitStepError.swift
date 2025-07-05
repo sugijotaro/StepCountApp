@@ -126,4 +126,110 @@ class HealthKitStepProvider {
         
         return result
     }
+    
+    func fetchStepsForSpecificDate(_ date: Date) async throws -> Int {
+        guard isAvailable else {
+            throw HealthKitStepError.notAvailable
+        }
+        
+        guard isAuthorized else {
+            throw HealthKitStepError.unauthorized
+        }
+        
+        let calendar = Calendar.current
+        let startDate = calendar.startOfDay(for: date)
+        guard let endDate = calendar.date(byAdding: .day, value: 1, to: startDate) else {
+            throw HealthKitStepError.dataNotAvailable
+        }
+        
+        return try await fetchSteps(from: startDate, to: endDate)
+    }
+    
+    func fetchStepsForDateRange(from startDate: Date, to endDate: Date) async throws -> [Date: Int] {
+        guard isAvailable else {
+            throw HealthKitStepError.notAvailable
+        }
+        
+        guard isAuthorized else {
+            throw HealthKitStepError.unauthorized
+        }
+        
+        let calendar = Calendar.current
+        let startOfStartDate = calendar.startOfDay(for: startDate)
+        let startOfEndDate = calendar.startOfDay(for: endDate)
+        
+        var result: [Date: Int] = [:]
+        var currentDate = startOfStartDate
+        
+        while currentDate <= startOfEndDate {
+            guard let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) else {
+                break
+            }
+            
+            do {
+                let steps = try await fetchSteps(from: currentDate, to: nextDate)
+                result[currentDate] = steps
+            } catch {
+                result[currentDate] = 0
+            }
+            
+            currentDate = nextDate
+        }
+        
+        return result
+    }
+    
+    func fetchMonthlySteps(for date: Date) async throws -> [Date: Int] {
+        guard isAvailable else {
+            throw HealthKitStepError.notAvailable
+        }
+        
+        guard isAuthorized else {
+            throw HealthKitStepError.unauthorized
+        }
+        
+        let calendar = Calendar.current
+        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: date)),
+              let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) else {
+            throw HealthKitStepError.dataNotAvailable
+        }
+        
+        return try await fetchStepsForDateRange(from: startOfMonth, to: endOfMonth)
+    }
+    
+    func fetchWeeklySteps(for date: Date) async throws -> [Date: Int] {
+        guard isAvailable else {
+            throw HealthKitStepError.notAvailable
+        }
+        
+        guard isAuthorized else {
+            throw HealthKitStepError.unauthorized
+        }
+        
+        let calendar = Calendar.current
+        guard let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: date)?.start,
+              let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek) else {
+            throw HealthKitStepError.dataNotAvailable
+        }
+        
+        return try await fetchStepsForDateRange(from: startOfWeek, to: endOfWeek)
+    }
+    
+    func fetchYearlySteps(for year: Int) async throws -> [Date: Int] {
+        guard isAvailable else {
+            throw HealthKitStepError.notAvailable
+        }
+        
+        guard isAuthorized else {
+            throw HealthKitStepError.unauthorized
+        }
+        
+        let calendar = Calendar.current
+        guard let startOfYear = calendar.date(from: DateComponents(year: year, month: 1, day: 1)),
+              let endOfYear = calendar.date(from: DateComponents(year: year, month: 12, day: 31)) else {
+            throw HealthKitStepError.dataNotAvailable
+        }
+        
+        return try await fetchStepsForDateRange(from: startOfYear, to: endOfYear)
+    }
 }

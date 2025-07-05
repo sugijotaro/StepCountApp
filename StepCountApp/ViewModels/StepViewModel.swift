@@ -13,6 +13,13 @@ class StepViewModel: ObservableObject {
     @Published var todaySteps: StepData?
     @Published var realtimeSteps: StepData?
     @Published var weeklySteps: [Date: StepData] = [:]
+    @Published var selectedDateSteps: StepData?
+    @Published var monthlySteps: [Date: StepData] = [:]
+    @Published var dateRangeSteps: [Date: StepData] = [:]
+    @Published var selectedDate = Date()
+    @Published var selectedMonth = Date()
+    @Published var startDate = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+    @Published var endDate = Date()
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var isRealtimeUpdating = false
@@ -122,5 +129,71 @@ class StepViewModel: ObservableObject {
     
     func getWeeklyStepsArray() -> [(date: Date, stepData: StepData)] {
         return weeklySteps.sorted { $0.key < $1.key }.map { (date: $0.key, stepData: $0.value) }
+    }
+    
+    func fetchStepsForSelectedDate() async {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let stepData = try await stepService.fetchStepsForSpecificDate(selectedDate)
+            selectedDateSteps = stepData
+        } catch {
+            errorMessage = "Failed to fetch steps for selected date: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+    }
+    
+    func fetchMonthlySteps() async {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let steps = try await stepService.fetchMonthlySteps(for: selectedMonth)
+            monthlySteps = steps
+        } catch {
+            errorMessage = "Failed to fetch monthly steps: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+    }
+    
+    func fetchDateRangeSteps() async {
+        guard !isLoading else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let steps = try await stepService.fetchStepsForDateRange(from: startDate, to: endDate)
+            dateRangeSteps = steps
+        } catch {
+            errorMessage = "Failed to fetch date range steps: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+    }
+    
+    func getMonthlyStepsArray() -> [(date: Date, stepData: StepData)] {
+        return monthlySteps.sorted { $0.key < $1.key }.map { (date: $0.key, stepData: $0.value) }
+    }
+    
+    func getDateRangeStepsArray() -> [(date: Date, stepData: StepData)] {
+        return dateRangeSteps.sorted { $0.key < $1.key }.map { (date: $0.key, stepData: $0.value) }
+    }
+    
+    func getTotalStepsInRange() -> Int {
+        return dateRangeSteps.values.reduce(0) { $0 + $1.steps }
+    }
+    
+    func getAverageStepsInRange() -> Int {
+        let total = getTotalStepsInRange()
+        let days = dateRangeSteps.count
+        return days > 0 ? total / days : 0
     }
 }
