@@ -8,16 +8,16 @@
 import Foundation
 import CoreMotion
 
-enum CoreMotionStepError: Error {
+public enum CoreMotionStepError: Error {
     case notAvailable
     case unauthorized
     case dataNotAvailable
 }
 
-class CoreMotionStepProvider {
+public class CoreMotionStepProvider: CoreMotionStepProviding {
     private let pedometer = CMPedometer()
     
-    var isAvailable: Bool {
+    public var isAvailable: Bool {
         return CMPedometer.isStepCountingAvailable()
     }
     

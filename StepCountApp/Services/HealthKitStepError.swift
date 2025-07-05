@@ -8,20 +8,20 @@
 import Foundation
 import HealthKit
 
-enum HealthKitStepError: Error {
+public enum HealthKitStepError: Error {
     case notAvailable
     case unauthorized
     case dataNotAvailable
 }
 
-class HealthKitStepProvider {
+public class HealthKitStepProvider: HealthKitStepProviding {
     private let healthStore = HKHealthStore()
     
-    var isAvailable: Bool {
+    public var isAvailable: Bool {
         return HKHealthStore.isHealthDataAvailable()
     }
     
-    var isAuthorized: Bool {
+    public var isAuthorized: Bool {
         guard let stepCountType = HKObjectType.quantityType(forIdentifier: .stepCount) else { return false }
         let status = healthStore.authorizationStatus(for: stepCountType)
         // HealthKitでは、プライバシー保護のため.notDeterminedでも実際には許可されている場合がある
