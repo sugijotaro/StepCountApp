@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import HealthKit
+import CoreMotion
 
 struct ContentView: View {
     @StateObject private var viewModel = StepViewModel()
@@ -60,12 +62,26 @@ struct ContentView: View {
             Text("Permission Status")
                 .font(.headline)
             
-            HStack {
-                Image(systemName: permissionIcon)
-                    .foregroundColor(permissionColor)
-                Text(permissionText)
-                    .foregroundColor(permissionColor)
-                Spacer()
+            VStack(spacing: 8) {
+                HStack {
+                    Image(systemName: permissionIcon)
+                        .foregroundColor(permissionColor)
+                    Text(permissionText)
+                        .foregroundColor(permissionColor)
+                    Spacer()
+                }
+                
+                // Debug information
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Debug Info:")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                    Text("HealthKit Available: \(HKHealthStore.isHealthDataAvailable() ? "Yes" : "No")")
+                        .font(.caption2)
+                    Text("CoreMotion Available: \(CMPedometer.isStepCountingAvailable() ? "Yes" : "No")")
+                        .font(.caption2)
+                }
+                .foregroundColor(.secondary)
             }
             .padding()
             .background(Color.gray.opacity(0.1))

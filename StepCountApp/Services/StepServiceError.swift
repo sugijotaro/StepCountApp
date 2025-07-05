@@ -163,28 +163,33 @@ class StepService: StepServiceProtocol {
     func fetchStepsForSpecificDate(_ date: Date) async throws -> StepData {
         let daysFromToday = Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 0
         
+        // Check if HealthKit is available and authorized first
+        guard healthKitProvider.isAvailable else {
+            throw StepServiceError.noProviderAvailable
+        }
+        
+        guard healthKitProvider.isAuthorized else {
+            throw StepServiceError.permissionDenied
+        }
+        
+        // For dates within 7 days, try hybrid approach
         if daysFromToday <= 7 && coreMotionProvider.isAvailable {
-            if healthKitProvider.isAvailable && healthKitProvider.isAuthorized {
+            do {
                 async let healthKitSteps = healthKitProvider.fetchStepsForSpecificDate(date)
                 async let coreMotionSteps = coreMotionProvider.fetchStepsForSpecificDate(date)
                 
-                do {
-                    let (hkSteps, cmSteps) = try await (healthKitSteps, coreMotionSteps)
-                    let selectedSteps = max(hkSteps, cmSteps)
-                    return StepData(steps: selectedSteps, source: .hybrid, date: date)
-                } catch {
-                    let hkSteps = try await healthKitProvider.fetchStepsForSpecificDate(date)
-                    return StepData(steps: hkSteps, source: .healthKit, date: date)
-                }
-            } else {
-                let steps = try await coreMotionProvider.fetchStepsForSpecificDate(date)
-                return StepData(steps: steps, source: .coreMotion, date: date)
+                let (hkSteps, cmSteps) = try await (healthKitSteps, coreMotionSteps)
+                let selectedSteps = max(hkSteps, cmSteps)
+                return StepData(steps: selectedSteps, source: .hybrid, date: date)
+            } catch {
+                // Fallback to HealthKit only
+                let steps = try await healthKitProvider.fetchStepsForSpecificDate(date)
+                return StepData(steps: steps, source: .healthKit, date: date)
             }
-        } else if healthKitProvider.isAvailable && healthKitProvider.isAuthorized {
+        } else {
+            // For dates older than 7 days, use HealthKit only
             let steps = try await healthKitProvider.fetchStepsForSpecificDate(date)
             return StepData(steps: steps, source: .healthKit, date: date)
-        } else {
-            throw StepServiceError.noProviderAvailable
         }
     }
     

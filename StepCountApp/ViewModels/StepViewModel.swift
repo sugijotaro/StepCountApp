@@ -140,6 +140,24 @@ class StepViewModel: ObservableObject {
         do {
             let stepData = try await stepService.fetchStepsForSpecificDate(selectedDate)
             selectedDateSteps = stepData
+        } catch let error as StepServiceError {
+            switch error {
+            case .noProviderAvailable:
+                errorMessage = "No step counting provider available. Please check if HealthKit is supported on this device."
+            case .permissionDenied:
+                errorMessage = "HealthKit permission denied. Please grant permission in Settings > Health > Data Access & Devices."
+            case .dataNotAvailable:
+                errorMessage = "Step data not available for the selected date."
+            }
+        } catch let error as HealthKitStepError {
+            switch error {
+            case .notAvailable:
+                errorMessage = "HealthKit is not available on this device."
+            case .unauthorized:
+                errorMessage = "HealthKit access not authorized. Please grant permission in Settings."
+            case .dataNotAvailable:
+                errorMessage = "No step data available for the selected date."
+            }
         } catch {
             errorMessage = "Failed to fetch steps for selected date: \(error.localizedDescription)"
         }
@@ -156,6 +174,15 @@ class StepViewModel: ObservableObject {
         do {
             let steps = try await stepService.fetchMonthlySteps(for: selectedMonth)
             monthlySteps = steps
+        } catch let error as StepServiceError {
+            switch error {
+            case .noProviderAvailable:
+                errorMessage = "HealthKit not available for monthly data."
+            case .permissionDenied:
+                errorMessage = "HealthKit permission required for monthly data."
+            case .dataNotAvailable:
+                errorMessage = "Monthly step data not available."
+            }
         } catch {
             errorMessage = "Failed to fetch monthly steps: \(error.localizedDescription)"
         }
@@ -172,6 +199,15 @@ class StepViewModel: ObservableObject {
         do {
             let steps = try await stepService.fetchStepsForDateRange(from: startDate, to: endDate)
             dateRangeSteps = steps
+        } catch let error as StepServiceError {
+            switch error {
+            case .noProviderAvailable:
+                errorMessage = "HealthKit not available for date range data."
+            case .permissionDenied:
+                errorMessage = "HealthKit permission required for date range data."
+            case .dataNotAvailable:
+                errorMessage = "Date range step data not available."
+            }
         } catch {
             errorMessage = "Failed to fetch date range steps: \(error.localizedDescription)"
         }
