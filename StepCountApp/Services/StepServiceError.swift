@@ -35,7 +35,6 @@ public struct StepData: Sendable {
 /// 歩数データ取得サービスのプロトコル
 ///
 /// HealthKitとCoreMotionを組み合わせて最適な歩数データを提供します。
-@MainActor
 public protocol StepServiceProtocol {
     /// HealthKitとCoreMotionの使用権限を要求します
     /// - Throws: StepServiceError 権限取得に失敗した場合
@@ -109,7 +108,6 @@ public protocol StepServiceProtocol {
 ///
 /// HealthKitとCoreMotionをデータソースとして利用し、最適な歩数データを返します。
 /// 直近のデータについてはハイブリッドアプローチを使用し、より古いデータについてはHealthKitから取得します。
-@MainActor
 public class StepService: StepServiceProtocol {
     
     /// StepServiceの動作設定
@@ -237,8 +235,10 @@ public class StepService: StepServiceProtocol {
         realtimeUpdateStartDate = startDate
         
         coreMotionProvider.startRealtimeStepUpdates(from: startDate) { steps in
-            let stepData = StepData(steps: steps, source: .coreMotion, date: Date())
-            handler(stepData)
+            Task { @MainActor in
+                let stepData = StepData(steps: steps, source: .coreMotion, date: Date())
+                handler(stepData)
+            }
         }
     }
     
