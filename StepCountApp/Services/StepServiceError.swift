@@ -14,13 +14,13 @@ public enum StepServiceError: Error {
     case dataNotAvailable
 }
 
-public enum StepDataSource {
+public enum StepDataSource: Sendable {
     case healthKit
     case coreMotion
     case hybrid
 }
 
-public struct StepData {
+public struct StepData: Sendable {
     public let steps: Int
     public let source: StepDataSource
     public let date: Date
@@ -35,6 +35,7 @@ public struct StepData {
 /// 歩数データ取得サービスのプロトコル
 ///
 /// HealthKitとCoreMotionを組み合わせて最適な歩数データを提供します。
+@MainActor
 public protocol StepServiceProtocol {
     /// HealthKitとCoreMotionの使用権限を要求します
     /// - Throws: StepServiceError 権限取得に失敗した場合
@@ -132,8 +133,8 @@ public class StepService: StepServiceProtocol {
             self.coreMotionLookbackDays = coreMotionLookbackDays
         }
     }
-    private let healthKitProvider: HealthKitStepProviding
-    private let coreMotionProvider: CoreMotionStepProviding
+    private let healthKitProvider: any HealthKitStepProviding & Sendable
+    private let coreMotionProvider: any CoreMotionStepProviding & Sendable
     private let configuration: Configuration
     
     private var realtimeUpdateStartDate: Date?
@@ -144,8 +145,8 @@ public class StepService: StepServiceProtocol {
     ///   - coreMotionProvider: CoreMotion歩数データプロバイダー
     ///   - configuration: サービスの動作設定
     public init(
-        healthKitProvider: HealthKitStepProviding? = nil,
-        coreMotionProvider: CoreMotionStepProviding? = nil,
+        healthKitProvider: (any HealthKitStepProviding & Sendable)? = nil,
+        coreMotionProvider: (any CoreMotionStepProviding & Sendable)? = nil,
         configuration: Configuration = .default
     ) {
         self.healthKitProvider = healthKitProvider ?? HealthKitStepProvider()
