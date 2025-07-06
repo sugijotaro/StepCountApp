@@ -40,12 +40,14 @@ public final class CoreMotionStepProvider: CoreMotionStepProviding {
             throw CoreMotionStepError.notAvailable
         }
 
+        // `pedometer`をローカル定数としてキャプチャする
+        let pedometer = self.pedometer
+
         // `Task.detached`を使い、現在のアクター（@MainActor）から処理を切り離す。
-        // これにより、バックグラウンドで安全に待機できる。
         let task = Task.detached {
             try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int, Error>) in
-                // このクロージャはバックグラウンドタスク内で実行される
-                self.pedometer.queryPedometerData(from: startDate, to: endDate) { data, error in
+                // キャプチャしたpedometerを使用する
+                pedometer.queryPedometerData(from: startDate, to: endDate) { data, error in
                     if let error = error {
                         continuation.resume(throwing: error)
                     } else if let steps = data?.numberOfSteps {

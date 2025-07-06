@@ -35,6 +35,7 @@ public struct StepData: Sendable {
 /// 歩数データ取得サービスのプロトコル
 ///
 /// HealthKitとCoreMotionを組み合わせて最適な歩数データを提供します。
+@MainActor
 public protocol StepServiceProtocol {
     /// HealthKitとCoreMotionの使用権限を要求します
     /// - Throws: StepServiceError 権限取得に失敗した場合
