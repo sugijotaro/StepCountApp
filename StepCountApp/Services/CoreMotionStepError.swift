@@ -14,6 +14,7 @@ public enum CoreMotionStepError: Error {
     case dataNotAvailable
 }
 
+@MainActor
 public final class CoreMotionStepProvider: CoreMotionStepProviding {
     private let pedometer = CMPedometer()
     
@@ -28,43 +29,34 @@ public final class CoreMotionStepProvider: CoreMotionStepProviding {
     }
     
     public func fetchTodaySteps() async throws -> Int {
-        guard isAvailable else {
-            throw CoreMotionStepError.notAvailable
-        }
-        
         let calendar = Calendar.current
         let startDate = calendar.startOfDay(for: Date())
         let endDate = Date()
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            pedometer.queryPedometerData(from: startDate, to: endDate) { data, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else if let steps = data?.numberOfSteps {
-                    continuation.resume(returning: steps.intValue)
-                } else {
-                    continuation.resume(throwing: CoreMotionStepError.dataNotAvailable)
-                }
-            }
-        }
+        return try await self.fetchSteps(from: startDate, to: endDate)
     }
     
     public func fetchSteps(from startDate: Date, to endDate: Date) async throws -> Int {
         guard isAvailable else {
             throw CoreMotionStepError.notAvailable
         }
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            pedometer.queryPedometerData(from: startDate, to: endDate) { data, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                } else if let steps = data?.numberOfSteps {
-                    continuation.resume(returning: steps.intValue)
-                } else {
-                    continuation.resume(throwing: CoreMotionStepError.dataNotAvailable)
+
+        // `Task.detached`を使い、現在のアクター（@MainActor）から処理を切り離す。
+        // これにより、バックグラウンドで安全に待機できる。
+        let task = Task.detached {
+            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int, Error>) in
+                // このクロージャはバックグラウンドタスク内で実行される
+                self.pedometer.queryPedometerData(from: startDate, to: endDate) { data, error in
+                    if let error = error {
+                        continuation.resume(throwing: error)
+                    } else if let steps = data?.numberOfSteps {
+                        continuation.resume(returning: steps.intValue)
+                    } else {
+                        continuation.resume(throwing: CoreMotionStepError.dataNotAvailable)
+                    }
                 }
             }
         }
+        return try await task.value
     }
     
     public func startRealtimeStepUpdates(from startDate: Date, handler: @escaping (Int) -> Void) {
@@ -72,7 +64,9 @@ public final class CoreMotionStepProvider: CoreMotionStepProviding {
         
         pedometer.startUpdates(from: startDate) { data, error in
             if let steps = data?.numberOfSteps {
-                handler(steps.intValue)
+                Task { @MainActor in
+                    handler(steps.intValue)
+                }
             }
         }
     }
