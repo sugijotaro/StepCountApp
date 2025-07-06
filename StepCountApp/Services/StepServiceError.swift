@@ -36,7 +36,7 @@ public struct StepData: Sendable {
 ///
 /// HealthKitとCoreMotionを組み合わせて最適な歩数データを提供します。
 @MainActor
-public protocol StepServiceProtocol {
+public protocol StepServiceProtocol: Sendable {
     /// HealthKitとCoreMotionの使用権限を要求します
     /// - Throws: StepServiceError 権限取得に失敗した場合
     func requestPermissions() async throws
@@ -99,7 +99,7 @@ public protocol StepServiceProtocol {
     ///
     /// CoreMotionを使用してリアルタイムに歩数データを取得します。
     /// - Parameter handler: 歩数更新時に呼ばれるコールバック
-    func startRealtimeStepUpdates(handler: @escaping (StepData) -> Void)
+    func startRealtimeStepUpdates(handler: @escaping @Sendable (StepData) -> Void)
     
     /// リアルタイム歩数更新を停止します
     func stopRealtimeStepUpdates()
@@ -230,7 +230,7 @@ public final class StepService: StepServiceProtocol {
         return result
     }
     
-    public func startRealtimeStepUpdates(handler: @escaping (StepData) -> Void) {
+    public func startRealtimeStepUpdates(handler: @escaping @Sendable (StepData) -> Void) {
         guard coreMotionProvider.isAvailable else { return }
         
         let startDate = Date()

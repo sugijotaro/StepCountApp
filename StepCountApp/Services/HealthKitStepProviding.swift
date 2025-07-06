@@ -1,7 +1,7 @@
 import Foundation
 
 /// HealthKitを使用した歩数データ取得機能を提供するプロトコル
-public protocol HealthKitStepProviding {
+public protocol HealthKitStepProviding: Sendable {
     /// HealthKitが利用可能かどうか
     var isAvailable: Bool { get }
     

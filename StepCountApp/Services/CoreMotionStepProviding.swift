@@ -1,7 +1,7 @@
 import Foundation
 
 /// CoreMotionを使用した歩数データ取得機能を提供するプロトコル
-public protocol CoreMotionStepProviding {
+public protocol CoreMotionStepProviding: Sendable {
     /// CoreMotionが利用可能かどうか
     var isAvailable: Bool { get }
     
