@@ -14,7 +14,7 @@ public enum HealthKitStepError: Error {
     case dataNotAvailable
 }
 
-public class HealthKitStepProvider: HealthKitStepProviding {
+public final class HealthKitStepProvider: HealthKitStepProviding, Sendable {
     private let healthStore = HKHealthStore()
     
     public var isAvailable: Bool {

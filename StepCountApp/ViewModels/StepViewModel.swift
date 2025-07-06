@@ -34,8 +34,8 @@ class StepViewModel: ObservableObject {
     
     private let stepService: StepServiceProtocol
     
-    init(stepService: StepServiceProtocol = StepService()) {
-        self.stepService = stepService
+    init(stepService: StepServiceProtocol? = nil) {
+        self.stepService = stepService ?? StepService()
     }
     
     func requestPermissions() async {

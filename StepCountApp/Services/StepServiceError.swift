@@ -108,6 +108,7 @@ public protocol StepServiceProtocol {
 ///
 /// HealthKitとCoreMotionをデータソースとして利用し、最適な歩数データを返します。
 /// 直近のデータについてはハイブリッドアプローチを使用し、より古いデータについてはHealthKitから取得します。
+@MainActor
 public class StepService: StepServiceProtocol {
     
     /// StepServiceの動作設定

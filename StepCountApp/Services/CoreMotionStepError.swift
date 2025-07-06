@@ -14,7 +14,8 @@ public enum CoreMotionStepError: Error {
     case dataNotAvailable
 }
 
-public class CoreMotionStepProvider: CoreMotionStepProviding {
+@MainActor
+public final class CoreMotionStepProvider: CoreMotionStepProviding {
     private let pedometer = CMPedometer()
     
     public var isAvailable: Bool {
