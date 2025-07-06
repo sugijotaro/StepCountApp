@@ -35,7 +35,8 @@ public struct StepData: Sendable {
 /// 歩数データ取得サービスのプロトコル
 ///
 /// HealthKitとCoreMotionを組み合わせて最適な歩数データを提供します。
-public protocol StepServiceProtocol: Sendable {
+@MainActor
+public protocol StepServiceProtocol {
     /// HealthKitとCoreMotionの使用権限を要求します
     /// - Throws: StepServiceError 権限取得に失敗した場合
     func requestPermissions() async throws
@@ -98,7 +99,7 @@ public protocol StepServiceProtocol: Sendable {
     ///
     /// CoreMotionを使用してリアルタイムに歩数データを取得します。
     /// - Parameter handler: 歩数更新時に呼ばれるコールバック
-    func startRealtimeStepUpdates(handler: @escaping @Sendable (StepData) -> Void)
+    func startRealtimeStepUpdates(handler: @escaping (StepData) -> Void)
     
     /// リアルタイム歩数更新を停止します
     func stopRealtimeStepUpdates()
@@ -108,10 +109,11 @@ public protocol StepServiceProtocol: Sendable {
 ///
 /// HealthKitとCoreMotionをデータソースとして利用し、最適な歩数データを返します。
 /// 直近のデータについてはハイブリッドアプローチを使用し、より古いデータについてはHealthKitから取得します。
-public final class StepService: StepServiceProtocol, Sendable {
+@MainActor
+public final class StepService: StepServiceProtocol {
     
     /// StepServiceの動作設定
-    public struct Configuration {
+    public struct Configuration: Sendable {
         /// CoreMotionとHealthKitのデータを比較するハイブリッドモードを使用するかどうか
         public let useHybridMode: Bool
         /// CoreMotionのデータ取得を試みる過去の日数
@@ -131,9 +133,11 @@ public final class StepService: StepServiceProtocol, Sendable {
             self.coreMotionLookbackDays = coreMotionLookbackDays
         }
     }
-    private let healthKitProvider: any HealthKitStepProviding & Sendable
-    private let coreMotionProvider: any CoreMotionStepProviding & Sendable
+    private let healthKitProvider: HealthKitStepProviding
+    private let coreMotionProvider: CoreMotionStepProviding
     private let configuration: Configuration
+    
+    private var realtimeUpdateStartDate: Date?
     
     /// StepServiceのイニシャライザ
     /// - Parameters:
@@ -141,8 +145,8 @@ public final class StepService: StepServiceProtocol, Sendable {
     ///   - coreMotionProvider: CoreMotion歩数データプロバイダー
     ///   - configuration: サービスの動作設定
     public init(
-        healthKitProvider: (any HealthKitStepProviding & Sendable)? = nil,
-        coreMotionProvider: (any CoreMotionStepProviding & Sendable)? = nil,
+        healthKitProvider: HealthKitStepProviding? = nil,
+        coreMotionProvider: CoreMotionStepProviding? = nil,
         configuration: Configuration = .default
     ) {
         self.healthKitProvider = healthKitProvider ?? HealthKitStepProvider()
@@ -226,19 +230,23 @@ public final class StepService: StepServiceProtocol, Sendable {
         return result
     }
     
-    public func startRealtimeStepUpdates(handler: @escaping @Sendable (StepData) -> Void) {
+    public func startRealtimeStepUpdates(handler: @escaping (StepData) -> Void) {
         guard coreMotionProvider.isAvailable else { return }
         
         let startDate = Date()
+        realtimeUpdateStartDate = startDate
         
         coreMotionProvider.startRealtimeStepUpdates(from: startDate) { steps in
-            let stepData = StepData(steps: steps, source: .coreMotion, date: Date())
-            handler(stepData)
+            Task { @MainActor in
+                let stepData = StepData(steps: steps, source: .coreMotion, date: Date())
+                handler(stepData)
+            }
         }
     }
     
     public func stopRealtimeStepUpdates() {
         coreMotionProvider.stopRealtimeStepUpdates()
+        realtimeUpdateStartDate = nil
     }
     
     private func fetchHybridSteps(from startDate: Date, to endDate: Date) async throws -> StepData {
