@@ -29,7 +29,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         return status != .sharingDenied
     }
     
-    func requestPermission() async throws {
+    public func requestPermission() async throws {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }
@@ -53,7 +53,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         }
     }
     
-    func fetchTodaySteps() async throws -> Int {
+    public func fetchTodaySteps() async throws -> Int {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }
@@ -65,7 +65,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         return try await fetchSteps(from: startDate, to: endDate)
     }
     
-    func fetchSteps(from startDate: Date, to endDate: Date) async throws -> Int {
+    public func fetchSteps(from startDate: Date, to endDate: Date) async throws -> Int {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }
@@ -95,7 +95,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         return Int(sum)
     }
     
-    func fetchStepsForLastNDays(_ days: Int) async throws -> [Date: Int] {
+    public func fetchStepsForLastNDays(_ days: Int) async throws -> [Date: Int] {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }
@@ -118,7 +118,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         return result
     }
     
-    func fetchStepsForSpecificDate(_ date: Date) async throws -> Int {
+    public func fetchStepsForSpecificDate(_ date: Date) async throws -> Int {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }
@@ -134,7 +134,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         return try await fetchSteps(from: startDate, to: endDate)
     }
     
-    func fetchStepsForDateRange(from startDate: Date, to endDate: Date) async throws -> [Date: Int] {
+    public func fetchStepsForDateRange(from startDate: Date, to endDate: Date) async throws -> [Date: Int] {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }
@@ -164,7 +164,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         return result
     }
     
-    func fetchMonthlySteps(for date: Date) async throws -> [Date: Int] {
+    public func fetchMonthlySteps(for date: Date) async throws -> [Date: Int] {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }
@@ -178,7 +178,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         return try await fetchStepsForDateRange(from: startOfMonth, to: endOfMonth)
     }
     
-    func fetchWeeklySteps(for date: Date) async throws -> [Date: Int] {
+    public func fetchWeeklySteps(for date: Date) async throws -> [Date: Int] {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }
@@ -192,7 +192,7 @@ public class HealthKitStepProvider: HealthKitStepProviding {
         return try await fetchStepsForDateRange(from: startOfWeek, to: endOfWeek)
     }
     
-    func fetchYearlySteps(for year: Int) async throws -> [Date: Int] {
+    public func fetchYearlySteps(for year: Int) async throws -> [Date: Int] {
         guard isAvailable else {
             throw HealthKitStepError.notAvailable
         }

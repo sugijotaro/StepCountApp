@@ -21,13 +21,13 @@ public class CoreMotionStepProvider: CoreMotionStepProviding {
         return CMPedometer.isStepCountingAvailable()
     }
     
-    func requestPermission() async throws {
+    public func requestPermission() async throws {
         guard isAvailable else {
             throw CoreMotionStepError.notAvailable
         }
     }
     
-    func fetchTodaySteps() async throws -> Int {
+    public func fetchTodaySteps() async throws -> Int {
         guard isAvailable else {
             throw CoreMotionStepError.notAvailable
         }
@@ -49,7 +49,7 @@ public class CoreMotionStepProvider: CoreMotionStepProviding {
         }
     }
     
-    func fetchSteps(from startDate: Date, to endDate: Date) async throws -> Int {
+    public func fetchSteps(from startDate: Date, to endDate: Date) async throws -> Int {
         guard isAvailable else {
             throw CoreMotionStepError.notAvailable
         }
@@ -67,7 +67,7 @@ public class CoreMotionStepProvider: CoreMotionStepProviding {
         }
     }
     
-    func startRealtimeStepUpdates(from startDate: Date, handler: @escaping (Int) -> Void) {
+    public func startRealtimeStepUpdates(from startDate: Date, handler: @escaping (Int) -> Void) {
         guard isAvailable else { return }
         
         pedometer.startUpdates(from: startDate) { data, error in
@@ -77,11 +77,11 @@ public class CoreMotionStepProvider: CoreMotionStepProviding {
         }
     }
     
-    func stopRealtimeStepUpdates() {
+    public func stopRealtimeStepUpdates() {
         pedometer.stopUpdates()
     }
     
-    func fetchStepsForSpecificDate(_ date: Date) async throws -> Int {
+    public func fetchStepsForSpecificDate(_ date: Date) async throws -> Int {
         guard isAvailable else {
             throw CoreMotionStepError.notAvailable
         }

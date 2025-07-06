@@ -33,7 +33,7 @@ public struct StepData {
 }
 
 /// 歩数データ取得サービスのプロトコル
-/// 
+///
 /// HealthKitとCoreMotionを組み合わせて最適な歩数データを提供します。
 public protocol StepServiceProtocol {
     /// HealthKitとCoreMotionの使用権限を要求します
@@ -46,7 +46,7 @@ public protocol StepServiceProtocol {
     func fetchTodaySteps() async throws -> StepData
     
     /// 指定した期間の歩数を取得します
-    /// 
+    ///
     /// 直近のデータについては、CoreMotionとHealthKitを比較したハイブリッドデータを返すことがあります。
     /// それより古いデータについては、HealthKitから取得します。
     /// - Parameters:
@@ -95,7 +95,7 @@ public protocol StepServiceProtocol {
     func fetchYearlySteps(for year: Int) async throws -> [Date: StepData]
     
     /// リアルタイム歩数更新を開始します
-    /// 
+    ///
     /// CoreMotionを使用してリアルタイムに歩数データを取得します。
     /// - Parameter handler: 歩数更新時に呼ばれるコールバック
     func startRealtimeStepUpdates(handler: @escaping (StepData) -> Void)
@@ -104,6 +104,10 @@ public protocol StepServiceProtocol {
     func stopRealtimeStepUpdates()
 }
 
+/// 歩数に関する各種機能を提供するサービス
+///
+/// HealthKitとCoreMotionをデータソースとして利用し、最適な歩数データを返します。
+/// 直近のデータについてはハイブリッドアプローチを使用し、より古いデータについてはHealthKitから取得します。
 public class StepService: StepServiceProtocol {
     
     /// StepServiceの動作設定
@@ -139,12 +143,12 @@ public class StepService: StepServiceProtocol {
     ///   - coreMotionProvider: CoreMotion歩数データプロバイダー
     ///   - configuration: サービスの動作設定
     public init(
-        healthKitProvider: HealthKitStepProviding = HealthKitStepProvider(),
-        coreMotionProvider: CoreMotionStepProviding = CoreMotionStepProvider(),
+        healthKitProvider: HealthKitStepProviding? = nil,
+        coreMotionProvider: CoreMotionStepProviding? = nil,
         configuration: Configuration = .default
     ) {
-        self.healthKitProvider = healthKitProvider
-        self.coreMotionProvider = coreMotionProvider
+        self.healthKitProvider = healthKitProvider ?? HealthKitStepProvider()
+        self.coreMotionProvider = coreMotionProvider ?? CoreMotionStepProvider()
         self.configuration = configuration
     }
     
