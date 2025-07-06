@@ -14,9 +14,34 @@ public enum CoreMotionStepError: Error {
     case dataNotAvailable
 }
 
-@MainActor
-public final class CoreMotionStepProvider: CoreMotionStepProviding {
+// CMPedometerをラップする専用のアクター
+actor PedometerActor {
     private let pedometer = CMPedometer()
+    
+    // コールバックベースのAPIをasync/awaitに変換する
+    func query(from start: Date, to end: Date) async throws -> Int {
+        return try await withCheckedThrowingContinuation { continuation in
+            pedometer.queryPedometerData(from: start, to: end) { data, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let steps = data?.numberOfSteps {
+                    continuation.resume(returning: steps.intValue)
+                } else {
+                    continuation.resume(throwing: CoreMotionStepError.dataNotAvailable)
+                }
+            }
+        }
+    }
+}
+
+// @MainActorは不要。Sendableに準拠させる。
+public final class CoreMotionStepProvider: CoreMotionStepProviding, Sendable {
+    // 専用アクターのインスタンスを保持する
+    private let pedometerActor = PedometerActor()
+    // リアルタイム更新用のPedometerは別途保持する
+    private let realtimePedometer = CMPedometer()
+    
+    public init() {} // publicなイニシャライザを追加
     
     public var isAvailable: Bool {
         return CMPedometer.isStepCountingAvailable()
@@ -26,6 +51,7 @@ public final class CoreMotionStepProvider: CoreMotionStepProviding {
         guard isAvailable else {
             throw CoreMotionStepError.notAvailable
         }
+        // 権限要求のロジックは特に何もしない
     }
     
     public func fetchTodaySteps() async throws -> Int {
@@ -39,42 +65,8 @@ public final class CoreMotionStepProvider: CoreMotionStepProviding {
         guard isAvailable else {
             throw CoreMotionStepError.notAvailable
         }
-
-        // `pedometer`をローカル定数としてキャプチャする
-        let pedometer = self.pedometer
-
-        // `Task.detached`を使い、現在のアクター（@MainActor）から処理を切り離す。
-        let task = Task.detached {
-            try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int, Error>) in
-                // キャプチャしたpedometerを使用する
-                pedometer.queryPedometerData(from: startDate, to: endDate) { data, error in
-                    if let error = error {
-                        continuation.resume(throwing: error)
-                    } else if let steps = data?.numberOfSteps {
-                        continuation.resume(returning: steps.intValue)
-                    } else {
-                        continuation.resume(throwing: CoreMotionStepError.dataNotAvailable)
-                    }
-                }
-            }
-        }
-        return try await task.value
-    }
-    
-    public func startRealtimeStepUpdates(from startDate: Date, handler: @escaping (Int) -> Void) {
-        guard isAvailable else { return }
-        
-        pedometer.startUpdates(from: startDate) { data, error in
-            if let steps = data?.numberOfSteps {
-                Task { @MainActor in
-                    handler(steps.intValue)
-                }
-            }
-        }
-    }
-    
-    public func stopRealtimeStepUpdates() {
-        pedometer.stopUpdates()
+        // アクターのメソッドを呼び出すことで、安全に非同期処理を実行
+        return try await pedometerActor.query(from: startDate, to: endDate)
     }
     
     public func fetchStepsForSpecificDate(_ date: Date) async throws -> Int {
@@ -95,5 +87,20 @@ public final class CoreMotionStepProvider: CoreMotionStepProviding {
         }
         
         return try await fetchSteps(from: startDate, to: endDate)
+    }
+    
+    public func startRealtimeStepUpdates(from startDate: Date, handler: @escaping @Sendable (Int) -> Void) {
+        guard isAvailable else { return }
+        
+        realtimePedometer.startUpdates(from: startDate) { data, error in
+            if let steps = data?.numberOfSteps {
+                // ハンドラは @Sendable である必要がある
+                handler(steps.intValue)
+            }
+        }
+    }
+    
+    public func stopRealtimeStepUpdates() {
+        realtimePedometer.stopUpdates()
     }
 }

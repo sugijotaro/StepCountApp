@@ -1,7 +1,6 @@
 import Foundation
 
 /// CoreMotionを使用した歩数データ取得機能を提供するプロトコル
-@MainActor
 public protocol CoreMotionStepProviding {
     /// CoreMotionが利用可能かどうか
     var isAvailable: Bool { get }
@@ -33,7 +32,7 @@ public protocol CoreMotionStepProviding {
     /// - Parameters:
     ///   - startDate: 更新開始日時
     ///   - handler: 歩数更新時に呼ばれるコールバック
-    func startRealtimeStepUpdates(from startDate: Date, handler: @escaping (Int) -> Void)
+    func startRealtimeStepUpdates(from startDate: Date, handler: @escaping @Sendable (Int) -> Void)
     
     /// リアルタイム歩数更新を停止する
     func stopRealtimeStepUpdates()

@@ -35,8 +35,7 @@ public struct StepData: Sendable {
 /// 歩数データ取得サービスのプロトコル
 ///
 /// HealthKitとCoreMotionを組み合わせて最適な歩数データを提供します。
-@MainActor
-public protocol StepServiceProtocol {
+public protocol StepServiceProtocol: Sendable {
     /// HealthKitとCoreMotionの使用権限を要求します
     /// - Throws: StepServiceError 権限取得に失敗した場合
     func requestPermissions() async throws
@@ -99,7 +98,7 @@ public protocol StepServiceProtocol {
     ///
     /// CoreMotionを使用してリアルタイムに歩数データを取得します。
     /// - Parameter handler: 歩数更新時に呼ばれるコールバック
-    func startRealtimeStepUpdates(handler: @escaping (StepData) -> Void)
+    func startRealtimeStepUpdates(handler: @escaping @Sendable (StepData) -> Void)
     
     /// リアルタイム歩数更新を停止します
     func stopRealtimeStepUpdates()
@@ -109,8 +108,7 @@ public protocol StepServiceProtocol {
 ///
 /// HealthKitとCoreMotionをデータソースとして利用し、最適な歩数データを返します。
 /// 直近のデータについてはハイブリッドアプローチを使用し、より古いデータについてはHealthKitから取得します。
-@MainActor
-public class StepService: StepServiceProtocol {
+public final class StepService: StepServiceProtocol, Sendable {
     
     /// StepServiceの動作設定
     public struct Configuration {
@@ -136,8 +134,6 @@ public class StepService: StepServiceProtocol {
     private let healthKitProvider: any HealthKitStepProviding & Sendable
     private let coreMotionProvider: any CoreMotionStepProviding & Sendable
     private let configuration: Configuration
-    
-    private var realtimeUpdateStartDate: Date?
     
     /// StepServiceのイニシャライザ
     /// - Parameters:
@@ -230,23 +226,19 @@ public class StepService: StepServiceProtocol {
         return result
     }
     
-    public func startRealtimeStepUpdates(handler: @escaping (StepData) -> Void) {
+    public func startRealtimeStepUpdates(handler: @escaping @Sendable (StepData) -> Void) {
         guard coreMotionProvider.isAvailable else { return }
         
         let startDate = Date()
-        realtimeUpdateStartDate = startDate
         
         coreMotionProvider.startRealtimeStepUpdates(from: startDate) { steps in
-            Task { @MainActor in
-                let stepData = StepData(steps: steps, source: .coreMotion, date: Date())
-                handler(stepData)
-            }
+            let stepData = StepData(steps: steps, source: .coreMotion, date: Date())
+            handler(stepData)
         }
     }
     
     public func stopRealtimeStepUpdates() {
         coreMotionProvider.stopRealtimeStepUpdates()
-        realtimeUpdateStartDate = nil
     }
     
     private func fetchHybridSteps(from startDate: Date, to endDate: Date) async throws -> StepData {
